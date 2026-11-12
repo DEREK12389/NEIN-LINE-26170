@@ -1,0 +1,70 @@
+name: Build LINE 26.17.0 NEIN IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout NEIN source
+        uses: actions/checkout@v5
+
+      - name: Check environment
+        run: |
+          sw_vers
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          python3 --version
+
+      - name: Download original IPA from private release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p input output
+          gh release download source-26170 \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "*.ipa" \
+            --dir input
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          files = list(Path("input").glob("*.ipa"))
+          if len(files) != 1:
+              raise SystemExit(f"Expected exactly one IPA, found {len(files)}")
+          target = Path("input/LINE-26.17.0.ipa")
+          if files[0] != target:
+              shutil.move(str(files[0]), str(target))
+          print("Original IPA ready:", target, target.stat().st_size, "bytes")
+          PY
+
+      - name: Build NEIN IPA
+        run: |
+          python3 tools/main.py \
+            input/LINE-26.17.0.ipa \
+            output/LINE-26.17.0-NEIN.ipa \
+            --keychain-compat \
+            --hide-promotional-tabs \
+            --iphone-duo \
+            --remove-ads \
+            --enable-sticker-shop \
+            --collapse-friends-on-launch
+
+      - name: Check output IPA
+        run: |
+          test -s output/LINE-26.17.0-NEIN.ipa
+          unzip -t output/LINE-26.17.0-NEIN.ipa | tail -n 3
+
+      - name: Upload finished IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: LINE-26.17.0-NEIN
+          path: output/LINE-26.17.0-NEIN.ipa
+          if-no-files-found: error
+          retention-days: 1
