@@ -34,3 +34,13 @@ jobs:
 
       - name: Check NEIN
         run: python3 tools/main.py --help
+      - name: Compile CoreUI icon extractor
+        run: |
+          xcrun --sdk macosx clang \
+            -fobjc-arc -fblocks \
+            -framework AppKit \
+            -framework ImageIO \
+            -framework UniformTypeIdentifiers \
+            tools/extract_icon_previews.m \
+            -o /tmp/extract_icon_previews
+          test -f /tmp/extract_icon_previews
