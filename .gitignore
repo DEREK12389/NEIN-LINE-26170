@@ -1,0 +1,16 @@
+# User-provided and generated install archives
+*.ipa
+*.manifest.json
+
+# Build products and local runtime state
+build/
+output/
+.sentry-native/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Large local reverse-engineering dependencies and inputs
+ghidra_*/
+analysis/input/
+analysis/venv/
