@@ -1,4 +1,3 @@
-
 name: NEIN Build Environment Check
 
 on:
@@ -34,6 +33,7 @@ jobs:
 
       - name: Check NEIN
         run: python3 tools/main.py --help
+
       - name: Compile CoreUI icon extractor
         run: |
           xcrun --sdk macosx clang \
@@ -44,3 +44,22 @@ jobs:
             tools/extract_icon_previews.m \
             -o /tmp/extract_icon_previews
           test -f /tmp/extract_icon_previews
+
+      - name: Compile NEINHooks dylib
+        run: |
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang \
+            -target arm64-apple-ios18.0 \
+            -isysroot "$SDK" \
+            -fobjc-arc -fblocks -O2 -Wall -Wextra \
+            -DNEIN_MULTI_ICON_PICKER=1 \
+            -dynamiclib \
+            -framework Foundation \
+            -framework UIKit \
+            -framework CoreGraphics \
+            -Wl,-install_name,@executable_path/Frameworks/NEINHooks.dylib \
+            hooks/NEINHooks.m \
+            -o /tmp/NEINHooks.dylib
+
+          codesign --force --sign - /tmp/NEINHooks.dylib
+          codesign --verify --strict /tmp/NEINHooks.dylib
